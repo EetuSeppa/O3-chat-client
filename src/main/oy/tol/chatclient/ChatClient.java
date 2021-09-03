@@ -34,6 +34,7 @@ public class ChatClient implements ChatClientDataProvider {
 	private static final String CMD_INFO = "/info";
 	private static final String CMD_EXIT = "/exit";
 	private static final String CMD_UPDATE_USER_INFO = "/update";
+	private static final String CMD_CREATE = "/create";
 
 	private static final int AUTO_FETCH_INTERVAL = 1000; // ms
 
@@ -148,6 +149,9 @@ public class ChatClient implements ChatClientDataProvider {
 					case CMD_UPDATE_USER_INFO:
 						updateUserData(console);
 						break;
+					case CMD_CREATE:
+						createChannel(console);
+						break;
 					default:
 						if (command.length() > 0 && !command.startsWith("/")) {
 							postMessage(command);
@@ -163,10 +167,33 @@ public class ChatClient implements ChatClientDataProvider {
 	}
 
 	/**
+	 * Create a new chat channel
+	 */
+	 private void createChannel(Console console) {
+		print("Insert the name of the channel you wish to create: ", colorInfo);
+		String newChannelName = console.readLine().trim();
+
+		print("Insert a description for your channel: ", colorInfo);
+		String newChannelDescription = console.readLine().trim();
+
+		try {
+			int response = httpClient.createChannel(newChannelName, newChannelDescription, username);
+
+			if (response == 204 || response == 200) {
+				println("Channel created succesfully!", colorInfo);
+			} else {
+				println("*** System responded with  " + response + " ***", colorError);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	 }
+
+	/**
 	 * Updates user data
 	 */
 	private void updateUserData(Console console) {
-		println("Insert fields that you wish to update, leave empty otherwise", colorInfo);	
+		println("Insert fields that you wish to update, leave empty, colorInfo otherwise", colorInfo);	
 
 		print("Insert new username: ", colorInfo);
 		String newUsername = console.readLine().trim();
