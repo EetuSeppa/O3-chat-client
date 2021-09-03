@@ -16,7 +16,7 @@
             "request": "launch",
             "mainClass": "oy.tol.chatclient.ChatClient",
             "projectName": "ChatClient",
-            "args": ["5","/Users/anttijuustila/workspace/O3/O3-chat-client/localhost.cer"]
+            "args": ["5","/Users/eetuseppanen/Documents/Projektit/Testiprojektit/Java/O3-chat-client/src/localhost.cer"]
         }
     ]
 }

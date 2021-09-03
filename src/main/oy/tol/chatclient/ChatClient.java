@@ -33,6 +33,7 @@ public class ChatClient implements ChatClientDataProvider {
 	private static final String CMD_HELP = "/help";
 	private static final String CMD_INFO = "/info";
 	private static final String CMD_EXIT = "/exit";
+	private static final String CMD_UPDATE_USER_INFO = "/update";
 
 	private static final int AUTO_FETCH_INTERVAL = 1000; // ms
 
@@ -144,6 +145,9 @@ public class ChatClient implements ChatClientDataProvider {
 						cancelAutoFetch();
 						running = false;
 						break;
+					case CMD_UPDATE_USER_INFO:
+						updateUserData(console);
+						break;
 					default:
 						if (command.length() > 0 && !command.startsWith("/")) {
 							postMessage(command);
@@ -158,6 +162,42 @@ public class ChatClient implements ChatClientDataProvider {
 		println("Bye!", colorInfo);
 	}
 
+	/**
+	 * Updates user data
+	 */
+	private void updateUserData(Console console) {
+		println("Insert fields that you wish to update, leave empty otherwise", colorInfo);	
+
+		print("Insert new username: ", colorInfo);
+		String newUsername = console.readLine().trim();
+
+		print("Insert new password: ", colorInfo);
+		String newPassword = console.readLine().trim();
+
+		print("Insert new email: ", colorInfo);
+		String newEmail = console.readLine().trim();
+
+		try {
+			int response = httpClient.updateUserData(username, newUsername, newPassword, newEmail);
+			if (response == 204 || response == 200) {
+				println("User information updated succesfully", colorInfo);
+				if (!newUsername.isEmpty()) {
+					username = newUsername;
+					nick = newUsername;
+				}
+				if (!newPassword.isEmpty()) {
+					password = newPassword;
+				}
+				if (!newEmail.isEmpty()) {
+					email = newEmail;
+				}
+			} else {
+				println("*** System responded with  " + response + " ***", colorError);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	/**
 	 * Toggles autofetch on and off. When autofetch is on, client fetches new chat
 	 * messages peridically. Requires that user has logged in. In case of errors,

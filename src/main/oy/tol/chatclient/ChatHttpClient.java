@@ -37,6 +37,7 @@ public class ChatHttpClient {
 	// Different paths (contexts) the server supports and this client implements.
 	private static final String CHAT = "chat";
 	private static final String REGISTRATION = "registration";
+	private static final String UPDATE = "updateUserInfo";
 
 	// When using JSON (excercise 3), List<ChatMessage> is used,
 	// and earlier, use List<String>.
@@ -82,6 +83,49 @@ public class ChatHttpClient {
 
 	public List<String> getPlainStringMessages() {
 		return plainStringMessages;
+	}
+
+	public synchronized int updateUserData(String oldUsername, String username, String password, String email) throws KeyManagementException, 
+	KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
+		String addr = dataProvider.getServer();
+		if (!addr.endsWith("/")) {
+			addr += "/";
+		}
+		addr += UPDATE; 
+		URL url = new URL(addr);
+
+		HttpURLConnection connection = createTrustingConnectionDebug(url);
+		connection.setUseCaches(false);
+		connection.setDefaultUseCaches(false);
+		connection.setRequestProperty("Cache-Control", "no-cache");
+
+		connection.setRequestMethod("PUT");
+		connection.setRequestProperty("Content-Type", "application/json");
+
+		String auth = dataProvider.getUsername() + ":" + dataProvider.getPassword();
+		byte[] encodedAuth = Base64.getEncoder().encode(auth.getBytes(StandardCharsets.UTF_8));
+		String authHeaderValue = "Basic " + new String(encodedAuth);
+		connection.setRequestProperty("Authorization", authHeaderValue);
+
+		byte msgBytes[];
+		JSONObject msg = new JSONObject();
+		
+		msg.put("oldUsername", oldUsername);
+		msg.put("user", username);
+		msg.put("password", password);
+		msg.put("email", email);
+		msgBytes = msg.toString().getBytes(StandardCharsets.UTF_8);
+
+		connection.setDoOutput(true);
+		connection.setDoInput(true);
+		connection.setRequestProperty("Content-Length", String.valueOf(msgBytes.length));
+
+		OutputStream writer = connection.getOutputStream();
+		writer.write(msgBytes);
+		writer.close();
+
+		int responseCode = connection.getResponseCode();
+		return responseCode;
 	}
 
 	public synchronized int getChatMessages() throws KeyManagementException, KeyStoreException, CertificateException,
