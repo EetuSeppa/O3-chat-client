@@ -56,7 +56,7 @@ public class ParallelTests {
             return;
         }
         try {
-            int code = httpClient1get.getChatMessages();
+            int code = httpClient1get.getChatMessages(null);
             assertTrue((code == 200 || code == 204), () -> "Must get 200 or 204 from server");
         } catch (Exception e) {
             fail("Getting messages from server in parallel failed: " + e.getMessage());
@@ -76,7 +76,7 @@ public class ParallelTests {
         for (int counter = 0; counter < DYNAMIC_POST_COUNT; counter++) {
             final int passingInt = counter;
             testArray.add(dynamicTest("Dynamic test A" + counter, () -> {
-                int code = httpClient1.postChatMessage("Dynamically posting A-" + passingInt);
+                int code = httpClient1.postChatMessage("Dynamically posting A-" + passingInt, null);
                 assertTrue((code == 200 || code == 429), () -> "Server returned code " + code + " " + httpClient1.getServerNotification());
                 if (code >= 400) {
                     System.out.println("Server returned " + code + " " + httpClient1.getServerNotification());
@@ -100,7 +100,7 @@ public class ParallelTests {
         for (int counter = 0; counter < DYNAMIC_POST_COUNT; counter++) {
             final int passingInt = counter;
             testArray.add(dynamicTest("Dynamic test B" + counter, () -> {
-                int code = httpClient2.postChatMessage("Dynamically posting B-" + passingInt);
+                int code = httpClient2.postChatMessage("Dynamically posting B-" + passingInt, null);
                 assertTrue((code == 200 || code == 429), () -> "Server returned code " + code + " " + httpClient2.getServerNotification());
                 if (code >= 400) {
                     System.out.println("Server returned " + code + " " + httpClient2.getServerNotification());

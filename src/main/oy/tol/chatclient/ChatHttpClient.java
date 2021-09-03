@@ -39,6 +39,7 @@ public class ChatHttpClient {
 	private static final String REGISTRATION = "registration";
 	private static final String UPDATE = "updateUserInfo";
 	private static final String CREATE = "createChannel";
+	private static final String CHANGE = "changeChannel";
 
 	// When using JSON (excercise 3), List<ChatMessage> is used,
 	// and earlier, use List<String>.
@@ -85,6 +86,64 @@ public class ChatHttpClient {
 	public List<String> getPlainStringMessages() {
 		return plainStringMessages;
 	}
+
+	public synchronized JSONObject changeChannel(String channelName) throws KeyManagementException,
+	KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
+		String addr = dataProvider.getServer();
+		if (!addr.endsWith("/")) {
+			addr += "/";
+		}
+		addr += CHANGE; 
+		URL url = new URL(addr);
+
+		HttpURLConnection connection = createTrustingConnectionDebug(url);
+		connection.setUseCaches(false);
+		connection.setDefaultUseCaches(false);
+		connection.setRequestProperty("Cache-Control", "no-cache");
+
+		connection.setRequestMethod("POST");
+		connection.setRequestProperty("Content-Type", "application/json");
+
+		String auth = dataProvider.getUsername() + ":" + dataProvider.getPassword();
+		byte[] encodedAuth = Base64.getEncoder().encode(auth.getBytes(StandardCharsets.UTF_8));
+		String authHeaderValue = "Basic " + new String(encodedAuth);
+		connection.setRequestProperty("Authorization", authHeaderValue);
+
+		byte msgBytes[];
+		JSONObject msg = new JSONObject();
+		
+		msg.put("channelName", channelName);
+		msgBytes = msg.toString().getBytes(StandardCharsets.UTF_8);
+
+		connection.setDoOutput(true);
+		connection.setDoInput(true);
+		connection.setRequestProperty("Content-Length", String.valueOf(msgBytes.length));
+
+		OutputStream writer = connection.getOutputStream();
+		writer.write(msgBytes);
+		writer.close();
+
+		int responseCode = connection.getResponseCode();
+		if (responseCode == 200 || responseCode == 204) {
+			latestDataFromServerIsFrom = null; //Set latest data to null to get all messages in new channels
+			String input;
+			BufferedReader in = new BufferedReader(
+					new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
+			String totalInput = "";
+			while ((input = in.readLine()) != null) {
+				totalInput += input;
+			}
+			JSONObject jsonObject = new JSONObject(totalInput);
+			jsonObject.put("responseCode", responseCode);
+			return jsonObject;
+		} else {
+			JSONObject errorObject = new JSONObject();
+			errorObject.put("responseCode", responseCode);
+			return errorObject;
+		}
+
+	}
+
 
 	public synchronized int createChannel(String newChannelName, String description, String username) throws KeyManagementException,
 	KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
@@ -172,7 +231,7 @@ public class ChatHttpClient {
 		return responseCode;
 	}
 
-	public synchronized int getChatMessages() throws KeyManagementException, KeyStoreException, CertificateException,
+	public synchronized int getChatMessages(String channelName) throws KeyManagementException, KeyStoreException, CertificateException,
 			NoSuchAlgorithmException, IOException {
 		String addr = dataProvider.getServer();
 		if (!addr.endsWith("/")) {
@@ -194,6 +253,10 @@ public class ChatHttpClient {
 		}
 		if (dataProvider.getServerVersion() >= 5 && null != latestDataFromServerIsFrom) {
 			connection.setRequestProperty("If-Modified-Since", latestDataFromServerIsFrom);
+		}
+
+		if (channelName != null) {
+			connection.setRequestProperty("Channel-Name", channelName);
 		}
 
 		String auth = dataProvider.getUsername() + ":" + dataProvider.getPassword();
@@ -255,7 +318,7 @@ public class ChatHttpClient {
 		return responseCode;
 	}
 
-	public synchronized int postChatMessage(String message) throws KeyManagementException, KeyStoreException, CertificateException,
+	public synchronized int postChatMessage(String message, String channelName) throws KeyManagementException, KeyStoreException, CertificateException,
 			NoSuchAlgorithmException, IOException {
 		String addr = dataProvider.getServer();
 		if (!addr.endsWith("/")) {
@@ -273,6 +336,12 @@ public class ChatHttpClient {
 			JSONObject msg = new JSONObject();
 			msg.put("user", dataProvider.getNick());
 			msg.put("message", message);
+			if (channelName != null) {
+				msg.put("channelName", channelName);
+			} else {
+				msg.put("channelName", "null");
+			}
+
 			ZonedDateTime now = ZonedDateTime.now(ZoneId.of("UTC"));
 			String dateText = now.format(jsonDateFormatter);
 			msg.put("sent", dateText);

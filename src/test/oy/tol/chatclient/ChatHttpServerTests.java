@@ -54,7 +54,7 @@ public class ChatHttpServerTests implements ChatClientDataProvider {
     @DisplayName("Testing HTTP GET /chat without valid user credentials, must throw")
     void getWithoutCredentials() {
         System.out.println("Testing HTTP GET /chat without valid user credentials, must throw");
-        assertThrows(Exception.class, () -> httpClient.getChatMessages());
+        assertThrows(Exception.class, () -> httpClient.getChatMessages(null));
     }
 
     @Test 
@@ -64,7 +64,7 @@ public class ChatHttpServerTests implements ChatClientDataProvider {
         System.out.println("Testing HTTP GET /chat with invalid user credentials, must throw");
         username = "randomnonexistentusernamehere";
         password = "invalidpasswordtoo";
-        assertThrows(Exception.class, () -> httpClient.getChatMessages());
+        assertThrows(Exception.class, () -> httpClient.getChatMessages(null));
     }
 
     @Test 
@@ -90,7 +90,7 @@ public class ChatHttpServerTests implements ChatClientDataProvider {
             System.out.println("Testing getting messages from server");
             username = ChatUnitTestSettings.existingUser;
             password = ChatUnitTestSettings.existingPassword;
-            int result = httpClient.getChatMessages();
+            int result = httpClient.getChatMessages(null);
             assertTrue(result == 200 || result == 204, () -> "Must get 200 or 204 from server");
 		} catch (Exception e) {
 			fail("Exception in getting chat messages from server: " + e.getMessage());
@@ -105,7 +105,7 @@ public class ChatHttpServerTests implements ChatClientDataProvider {
             username = ChatUnitTestSettings.existingUser;
             password = ChatUnitTestSettings.existingPassword;
             String message = "";
-            int result = httpClient.postChatMessage(message);
+            int result = httpClient.postChatMessage(message, null);
             assertTrue(result >= 400, () -> "Must get error from server");
 		} catch (Exception e) {
 			fail("Exception in posting empty chat message to server: " + e.getMessage());
@@ -120,7 +120,7 @@ public class ChatHttpServerTests implements ChatClientDataProvider {
             username = ChatUnitTestSettings.existingUser;
             password = ChatUnitTestSettings.existingPassword;
             String message = "    ";
-            int result = httpClient.postChatMessage(message);
+            int result = httpClient.postChatMessage(message, null);
             assertTrue(result >= 400, () -> "Must get error from server");
 		} catch (Exception e) {
 			fail("Exception in posting empty chat message to server: " + e.getMessage());
@@ -136,7 +136,7 @@ public class ChatHttpServerTests implements ChatClientDataProvider {
             username = ChatUnitTestSettings.existingUser;
             password = ChatUnitTestSettings.existingPassword;
             String message = randomString(120);
-            int result = httpClient.postChatMessage(message);
+            int result = httpClient.postChatMessage(message, null);
             assertTrue((result == 200 || result == 429), () -> "Must get 200 from server (or 429 if posting too fast).");
 		} catch (Exception e) {
 			fail("Exception in getting chat messages from server: " + e.getMessage());
@@ -155,16 +155,16 @@ public class ChatHttpServerTests implements ChatClientDataProvider {
             final int MSGS_TO_ADD = 10;
             final int LOOPS_TO_RUN = 10;
             int loop = LOOPS_TO_RUN;
-            int result = httpClient.getChatMessages();
+            int result = httpClient.getChatMessages(null);
             assertTrue(result == 200 || result == 204, () -> "Must get 200 or 204 from server");
             List<ChatMessage> messages = httpClient.getNewMessages();
             while (loop >= 0) {
                 for (int looper = 0; looper < MSGS_TO_ADD; looper++) {
                     String message = randomString(120);
-                    result = httpClient.postChatMessage(message);
+                    result = httpClient.postChatMessage(message, null);
                     assertTrue(result == 200, () -> "Must get 200 from server");
                 }
-                result = httpClient.getChatMessages();
+                result = httpClient.getChatMessages(null);
                 assertTrue(result == 200 || result == 204, () -> "Must get 200 or 204 from server");
                 messages = httpClient.getNewMessages();
                 loop--;

@@ -15,6 +15,8 @@ import java.util.TimerTask;
 import com.diogonunes.jcolor.Ansi;
 import com.diogonunes.jcolor.Attribute;
 
+import org.json.JSONObject;
+
 /**
  * ChatClient is the console based UI for the ChatServer. It profides the
  * necessary functionality for chatting. The actual comms with the ChatServer
@@ -35,6 +37,7 @@ public class ChatClient implements ChatClientDataProvider {
 	private static final String CMD_EXIT = "/exit";
 	private static final String CMD_UPDATE_USER_INFO = "/update";
 	private static final String CMD_CREATE = "/create";
+	private static final String CMD_CHANGE = "/change";
 
 	private static final int AUTO_FETCH_INTERVAL = 1000; // ms
 
@@ -43,6 +46,7 @@ public class ChatClient implements ChatClientDataProvider {
 	private String password = null; // The password in clear text.
 	private String email = null; // Email address of user, needed for registering.
 	private String nick = null; // Nickname, user can change the name visible in chats.
+	private String channel = null; //Current channel
 
 	private ChatHttpClient httpClient = null; // Client handling the requests & responses.
 
@@ -152,6 +156,9 @@ public class ChatClient implements ChatClientDataProvider {
 					case CMD_CREATE:
 						createChannel(console);
 						break;
+					case CMD_CHANGE:
+						changeChannel(console);
+						break;
 					default:
 						if (command.length() > 0 && !command.startsWith("/")) {
 							postMessage(command);
@@ -165,7 +172,33 @@ public class ChatClient implements ChatClientDataProvider {
 		}
 		println("Bye!", colorInfo);
 	}
+	/**
+	 * Changes the current channel
+	 */
+	private void changeChannel(Console console) {
+		print("Insert the name of the channel: ", colorInfo);
+		String channelName = console.readLine().trim();
+		if (channelName.equals("main")) { //Change back to main channel by making channel null
+			channel = null;
+		} else {
+			try {
+				JSONObject response = httpClient.changeChannel(channelName);
 
+				int responseCode = response.getInt("responseCode");
+				if (responseCode == 204 || responseCode == 200) {
+					println("Channel changed succesfully!", colorInfo);
+					println("You are now chatting on channel " + response.getString("channelName"), colorInfo);
+					println("Channel description: " + response.getString("description"), colorInfo);
+					println("This channel was created by " + response.getString("createdBy"), colorInfo);
+					channel = response.getString("channelName");
+				} else {
+					println("*** System responded with  " + responseCode + " ***", colorError);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
 	/**
 	 * Create a new chat channel
 	 */
@@ -418,7 +451,7 @@ public class ChatClient implements ChatClientDataProvider {
 		int count = 0;
 		try {
 			if (null != username && null != password) {
-				int response = httpClient.getChatMessages();
+				int response = httpClient.getChatMessages(channel);
 				if (response >= 200 || response < 300) {
 					if (serverVersion >= 3) {
 						List<ChatMessage> messages = httpClient.getNewMessages();
@@ -466,7 +499,7 @@ public class ChatClient implements ChatClientDataProvider {
 	private void postMessage(String message) {
 		if (null != username) {
 			try {
-				int response = httpClient.postChatMessage(message);
+				int response = httpClient.postChatMessage(message, channel);
 				if (response < 200 || response >= 300) {
 					println("Error from server: " + response + " " + httpClient.getServerNotification(), colorError);
 				}
